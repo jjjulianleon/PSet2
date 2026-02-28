@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+mage_project/.file_versions/
+mage_project/.ssh_tunnel/
+mage_project/mage-ai.db
+*.parquet
+transform_bronze.txt

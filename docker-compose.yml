@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: pset2_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    networks:
+      - pset2_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mage:
+    image: mageai/mageai:latest
+    container_name: pset2_mage
+    restart: unless-stopped
+    environment:
+      USER_CODE_PATH: /home/src/mage_project
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "6789:6789"
+    volumes:
+      - ./mage_project:/home/src/mage_project
+      - ./dbt_project:/home/src/dbt_project
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pset2_network
+    command: >
+      bash -c "
+        pip install dbt-postgres --quiet &&
+        mage start mage_project
+      "
+
+volumes:
+  postgres_data:
+
+networks:
+  pset2_network:
+    driver: bridge
