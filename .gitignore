@@ -6,3 +6,10 @@ mage_project/.ssh_tunnel/
 mage_project/mage-ai.db
 *.parquet
 transform_bronze.txt
+ingest_bronze_custom.txt
+load_zones.py
+.transform_bronze.txt.kate-swp
+dbt_project/target/
+dbt_project/logs/
+dbt_project/.user.yml
+.claude/

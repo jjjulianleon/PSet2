@@ -1,0 +1,44 @@
+version: 2
+
+sources:
+  - name: gold
+    schema: gold
+    tables:
+      - name: fct_trips
+        columns:
+          - name: trip_key
+            tests:
+              - not_null
+          - name: pu_zone_key
+            tests:
+              - relationships:
+                  to: source('gold', 'dim_zone')
+                  field: zone_key
+          - name: do_zone_key
+            tests:
+              - relationships:
+                  to: source('gold', 'dim_zone')
+                  field: zone_key
+          - name: pickup_date_key
+            tests:
+              - relationships:
+                  to: ref('dim_date')
+                  field: date_key
+      - name: dim_zone
+        columns:
+          - name: zone_key
+            tests:
+              - unique
+              - not_null
+      - name: dim_service_type
+        columns:
+          - name: service_type
+            tests:
+              - accepted_values:
+                  values: ['yellow', 'green']
+      - name: dim_payment_type
+        columns:
+          - name: payment_type
+            tests:
+              - accepted_values:
+                  values: ['Credit card', 'Cash', 'No charge', 'Dispute', 'Unknown', 'Voided trip']

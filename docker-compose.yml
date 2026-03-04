@@ -38,11 +38,16 @@ services:
     volumes:
       - ./mage_project:/home/src/mage_project
       - ./dbt_project:/home/src/dbt_project
+      - ./sql:/home/src/sql
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - pset2_network
+    deploy:
+      resources:
+        limits:
+          memory: 10g
     command: >
       bash -c "
         pip install dbt-postgres --quiet &&
