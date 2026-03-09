@@ -27,5 +27,7 @@ WHERE
     AND pickup_datetime <= dropoff_datetime
     AND trip_distance >= 0
     AND total_amount >= 0
+    AND "PULocationID" BETWEEN 1 AND 263
+    AND "DOLocationID" BETWEEN 1 AND 263
     AND pickup_datetime >= '2022-01-01'
     AND pickup_datetime < '2026-01-01'

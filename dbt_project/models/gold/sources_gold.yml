@@ -8,6 +8,7 @@ sources:
         columns:
           - name: trip_key
             tests:
+              - unique
               - not_null
           - name: pu_zone_key
             tests:
