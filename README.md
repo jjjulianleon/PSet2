@@ -460,3 +460,19 @@ El notebook `notebooks/NotebookPSet2.ipynb` contiene 20 preguntas de negocio res
 18. Percentiles p50/p90 de duracion por borough
 19. Top 10 zonas por p90 de duracion
 20. Top 10 rutas borough→borough
+
+---
+
+## 12. Checklist de aceptacion
+
+- [x] Docker Compose levanta Postgres + Mage
+- [x] Credenciales en Mage Secrets y .env (solo .env.example en repo)
+- [x] Pipeline ingest_bronze mensual e idempotente + tabla de cobertura
+- [x] dbt corre dentro de Mage: dbt_build_silver, dbt_build_gold, quality_checks
+- [x] Silver materialized = views; Gold materialized = tables
+- [x] Gold tiene esquema estrella completo
+- [x] Particionamiento: RANGE en fct_trips, HASH en dim_zone, LIST en dim_service_type y dim_payment_type
+- [x] README incluye \d+ y EXPLAIN (ANALYZE, BUFFERS) con pruning
+- [x] dbt test pasa desde Mage (13/13 PASS)
+- [x] Notebook responde 20 preguntas usando solo gold.*
+- [x] Triggers configurados y evidenciados
