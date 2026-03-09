@@ -359,29 +359,29 @@ dbt test output:
 
 ## 9. Troubleshooting
 
-### Problema 1: `SyntaxError: engine =` al ejecutar particionamiento en Mage
+### Problema 1: Mage no tiene Event triggers — pipeline chaining via API
 
-**Causa:** Al copiar codigo en el editor de Mage, una linea larga se corto por un salto de linea involuntario, separando `engine =` de `create_engine(conn_str)`.
+**Causa:** Mage v0.9.79 solo ofrece triggers de tipo Schedule y API; no soporta Event triggers nativos para encadenar pipelines automaticamente al terminar otro.
 
-**Solucion:** Refactorizar la linea larga en dos variables separadas (`conn_str` y `engine`) para evitar el corte.
+**Solucion:** Se creo un pipeline separado `dbt_after_ingest` con un API trigger. En el pipeline `ingest_bronze` se agrego un bloque custom `trigger_dbt_chain` al final que hace un POST HTTP al endpoint API de `dbt_after_ingest`, disparando automaticamente la cadena dbt (silver → particionamiento → gold → tests) cada vez que la ingesta termina exitosamente.
 
-### Problema 2: `AttributeError: 'Connection' object has no attribute 'commit'`
+### Problema 2: Crash de kernel por falta de memoria durante la ingesta
 
-**Causa:** La version de SQLAlchemy instalada en el contenedor de Mage no soporta `conn.commit()` en objetos Connection obtenidos con `engine.connect()`.
+**Causa:** La ingesta descarga 94 archivos parquet (47 yellow + 47 green) que pueden pesar varios GB cada uno. Sin gestion de memoria, el contenedor de Mage (10 GB limite) se quedaba sin RAM y el kernel mataba el proceso.
 
-**Solucion:** Cambiar de `engine.connect()` + `conn.commit()` a `engine.begin()`, que maneja el commit automaticamente al salir del bloque `with`.
+**Solucion:** En `ingest_bronze_custom.py` se implemento liberacion explicita de memoria despues de cada mes:
+```python
+engine.dispose()   # Cierra conexiones del pool
+del df             # Elimina el DataFrame de memoria
+gc.collect()       # Fuerza el garbage collector de Python
+```
+Ademas, se consultan los meses ya cargados al inicio y se saltan (`loaded_set`), evitando reprocesar datos que ya estan en bronze.
 
-### Problema 3: `ProgrammingError: function round(double precision, integer) does not exist`
+### Problema 3: Bloque custom en `ingest_bronze` para orquestar el flujo completo
 
-**Causa:** PostgreSQL no permite aplicar `ROUND()` directamente sobre valores `double precision`. La funcion solo acepta `numeric`.
+**Causa:** El pipeline `ingest_bronze` originalmente solo tenia el bloque de ingesta. Para cumplir con la orquestacion end-to-end desde Mage (sin ejecutar dbt manualmente), se necesitaba disparar los pipelines de transformacion automaticamente.
 
-**Solucion:** Agregar un cast explicito `::numeric` antes de aplicar ROUND: `ROUND((AVG(...) * 100)::numeric, 2)`.
-
-### Problema 4: Mage no tiene Event triggers (solo Schedule y API)
-
-**Causa:** Mage v0.9.79 no soporta Event triggers nativos para encadenar pipelines automaticamente.
-
-**Solucion:** Se creo un pipeline `dbt_after_ingest` con un API trigger, y se agrego un bloque al final de `ingest_bronze` que hace un POST HTTP al endpoint API para disparar la cadena.
+**Solucion:** Se agrego un segundo bloque custom `trigger_dbt_chain` como downstream de `ingest_bronze_custom`. Este bloque usa la libreria `requests` para hacer un POST al API trigger de `dbt_after_ingest`, encadenando asi: ingesta → silver → particiones → gold → tests, todo orquestado desde Mage sin intervencion manual.
 
 ---
 
